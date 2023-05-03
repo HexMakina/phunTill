@@ -24,7 +24,6 @@ class Request
         $this->endPoint = $endPoint;
 
         $this->curl_handle = curl_init();
-        vd($this->url());
         curl_setopt($this->curl_handle, CURLOPT_URL, $this->url());
         curl_setopt($this->curl_handle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($this->curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
