@@ -93,11 +93,28 @@ class POSAPI
     }
 
 
+
     public function request($endpoint, $version = 'v1'): Request
     {
         return new Request($this, $endpoint, $version);
     }
 
+    /**
+     * List available articles. Required user permission: Backoffice view
+     */
+    public function articles(bool $only_active = true): array
+    {
+        $endpoint = '/article';
+        if ($only_active === true)
+            $endpoint .= '?active=true';
+
+        $res = $this->request($endpoint)->get();
+        return $res->array();
+    }
+
+    /**
+     * List available categories. Required user permission: Backoffice view
+     */
     public function categories(bool $only_active = true): array
     {
         $endpoint = '/category';
@@ -105,20 +122,61 @@ class POSAPI
         return $res->array();
     }
 
+    /**
+     * List available courses. Required user permission: Backoffice view
+     */
     public function courses(bool $only_active = true): array
     {
         $endpoint = '/course';
         if ($only_active === true)
             $endpoint .= '?active=true';
+
         $res = $this->request($endpoint)->get();
         return $res->array();
     }
 
-    public function articles(bool $only_active = true): array
+
+    /**
+     * List available courses. Required user permission: Backoffice view
+     */
+    public function departments(int $salesAreaId = null): array
     {
-        $endpoint = '/article';
-        if ($only_active === true)
-            $endpoint .= '?active=true';
+        $endpoint = '/department-info';
+        if (!is_null($salesAreaId))
+            $endpoint .= '?salesAreaId=' . $salesAreaId;
+
+        $res = $this->request($endpoint)->get();
+        return $res->array();
+    }
+
+    /**
+     * List available courses. Required user permission: Backoffice view
+     */
+    public function prices(): array
+    {
+        $endpoint = '/price-info';
+
+        $res = $this->request($endpoint)->get();
+        return $res->array();
+    }
+
+    /**
+     * List available courses. Required user permission: Backoffice view
+     */
+    public function options(): array
+    {
+        $endpoint = '/option-info';
+
+        $res = $this->request($endpoint)->get();
+        return $res->array();
+    }
+
+    /**
+     * List available courses. Required user permission: Backoffice view
+     */
+    public function areas(): array
+    {
+        $endpoint = '/sales-area-info';
 
         $res = $this->request($endpoint)->get();
         return $res->array();
@@ -170,6 +228,16 @@ class POSAPI
         }
 
         return $response;
+    }
+
+    public function keyValue($collection, $key = 'id', $value = 'name')
+    {
+        $ret = [];
+        $records = call_user_func([$this, $collection]);
+        foreach ($records as $rec) {
+            $ret[$rec->$key] = $rec->$value;
+        }
+        return $ret;
     }
 
     // public function getTables() : array
