@@ -9,52 +9,81 @@ namespace HexMakina\phunTill;
 
 class Request
 {
-    private $curl_handle;
-    private $body;
 
     private POSAPI $api;
-    private $version;
-    private $endPoint;
 
+    private string $endpoint;
+    private ?string $version;
 
-    public function __construct(POSAPI $api, $endPoint, $version)
+    private string $method;
+
+    private array $parameters = [];
+    private array $options = [];
+
+    public function __construct(POSAPI $api, string $endpoint, string $method='GET', $version = null)
     {
         $this->api = $api;
+        $this->endpoint = $endpoint;
+        $this->method = $method;
         $this->version = $version;
-        $this->endPoint = $endPoint;
 
-        $this->curl_handle = curl_init();
-        curl_setopt($this->curl_handle, CURLOPT_URL, $this->url());
-        curl_setopt($this->curl_handle, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_setopt($this->curl_handle, CURLOPT_USERPWD, $api->authString());
-        curl_setopt($this->curl_handle, CURLOPT_HTTPHEADER, $api->headers());
+        $this->withOptions([
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+            CURLOPT_USERPWD => $this->api->authString(),
+            CURLOPT_HTTPHEADER => $this->api->headers()
+        ]);
     }
 
-    public function get() : Response
+    public function withParameter($key, $value)
     {
-      return $this->execute();
+        $this->parameters[$key] = $value;
+
+        return $this;
     }
 
-    public function post(string $json_content) : Response
+    public function withParameters(array $dat_ass)
     {
-      $this->body = $json_content;
-      curl_setopt($this->curl_handle, CURLOPT_POST, 1);
-      curl_setopt($this->curl_handle, CURLOPT_POSTFIELDS, $this->body);
+        foreach ($dat_ass as $key => $value)
+            $this->withParameter($key, $value);
 
-      return $this->execute();
+        return $this;
     }
 
-    private function execute() : Response
+    public function withOption($key, $value)
     {
-      $response = curl_exec($this->curl_handle);
-      $response_code = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
+        $this->options[$key] = $value;
 
-      return new Response($response, $response_code);
+        return $this;
     }
 
-    private function url()
+    public function withOptions(array $dat_ass)
     {
-        return $this->api->baseUrl() . '/api/' . $this->api->getVersion() .'/' . $this->api->getDatabase() . $this->endPoint;
+        foreach ($dat_ass as $key => $value)
+            $this->withOption($key, $value);
+
+        return $this;
+    }
+
+    public function URL($endpoint = null, $version = null): string
+    {
+        $endpoint = $endpoint ?? $this->endpoint;
+        if (is_array($this->parameters) && !empty($this->parameters)) {
+            $endpoint .= '?' . http_build_query($this->parameters);
+        }
+
+        $version = $version ?? $this->version ?? $this->api->version();
+
+        return sprintf('%s/api/%s/%s/%s', $this->api->baseUrl(), $version, $this->api->database(), $endpoint);
+    }
+
+    public function method(): string
+    {
+        return $this->method;
+    }
+
+    public function options(): array
+    {
+        return $this->options;
     }
 }

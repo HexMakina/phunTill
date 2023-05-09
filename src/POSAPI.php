@@ -6,8 +6,6 @@
  */
 
 /*
-
-
    DOC: https://testapi.untill.com/shield/api/
  */
 
@@ -16,6 +14,9 @@ namespace HexMakina\phunTill;
 class POSAPI
 {
     public const AUTH_FORMAT = '%s:%s';
+    public const SUCCESS_CODES = [200, 201];
+
+    private $curl_handle;
 
     private $baseUrl;
     private $database;
@@ -39,7 +40,7 @@ class POSAPI
      *  Application token and application name presents - AppToken: myAppToken:myAppName
      */
 
-    public function __construct($baseUrl, $database, $appToken, $appName, $version = 'v1')
+    public function __construct($baseUrl, $database, $appToken, $appName, $version)
     {
         $this->baseUrl = $baseUrl;
         $this->database = $database;
@@ -59,17 +60,17 @@ class POSAPI
         $this->password = $password;
     }
 
-    public function getDatabase(): string
+    public function database(): string
     {
         return $this->database;
     }
 
-    public function getVersion(): string
+    public function version(): string
     {
         return $this->version;
     }
 
-    public function baseUrl()
+    public function baseUrl(): string
     {
         return $this->baseUrl;
     }
@@ -82,105 +83,61 @@ class POSAPI
         return $this->onlineTableName;
     }
 
-    public function headers()
+    public function headers(): array
     {
         return $this->headers;
     }
 
-    public function authString()
+    public function authString(): string
     {
         return sprintf(self::AUTH_FORMAT, $this->username, $this->password);
     }
 
-
-
-    public function request($endpoint, $version = 'v1'): Request
+    // throws phunTillException depending of success
+    public function get(string $endpoint, $params = [], $version = null): Response
     {
-        return new Request($this, $endpoint, $version);
+        $request = new Request($this, $endpoint, 'GET', $version);
+        $request->withParameters($params);
+
+        return $this->execute($request);
     }
 
-    /**
-     * List available articles. Required user permission: Backoffice view
-     */
-    public function articles(bool $only_active = true): array
+    // throws phunTillException depending of success
+    public function post(string $endpoint, string $json_content, $version = null): Response
     {
-        $endpoint = '/article';
-        if ($only_active === true)
-            $endpoint .= '?active=true';
+        $post_options = [
+            CURLOPT_POST => 1,
+            CURLOPT_POSTFIELDS => $json_content
+        ];
 
-        $res = $this->request($endpoint)->get();
-        return $res->array();
+        $request = new Request($this, $endpoint, 'POST', $version);
+        $request->withOptions($post_options);
+
+        return $this->execute($request);
     }
 
-    /**
-     * List available categories. Required user permission: Backoffice view
-     */
-    public function categories(bool $only_active = true): array
+    private function execute(Request $request): Response
     {
-        $endpoint = '/category';
-        $res = $this->request($endpoint)->get();
-        return $res->array();
+        $this->curl_handle = curl_init();
+
+        $request->withOption(CURLOPT_URL, $request->URL());
+
+        foreach ($request->options() as $const => $value)
+            curl_setopt($this->curl_handle, $const, $value);
+
+
+        $body = curl_exec($this->curl_handle);
+        if ($body === false) {
+            $body = json_encode(curl_getinfo($this->curl_handle)); // error context
+        }
+
+        $status = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
+        if (!in_array($status, self::SUCCESS_CODES))
+            throw new phunTillException('API_' . $request->method() . '_FAILURE-#' . $status);
+
+        return new Response($body, $status);
     }
 
-    /**
-     * List available courses. Required user permission: Backoffice view
-     */
-    public function courses(bool $only_active = true): array
-    {
-        $endpoint = '/course';
-        if ($only_active === true)
-            $endpoint .= '?active=true';
-
-        $res = $this->request($endpoint)->get();
-        return $res->array();
-    }
-
-
-    /**
-     * List available courses. Required user permission: Backoffice view
-     */
-    public function departments(int $salesAreaId = null): array
-    {
-        $endpoint = '/department-info';
-        if (!is_null($salesAreaId))
-            $endpoint .= '?salesAreaId=' . $salesAreaId;
-
-        $res = $this->request($endpoint)->get();
-        return $res->array();
-    }
-
-    /**
-     * List available courses. Required user permission: Backoffice view
-     */
-    public function prices(): array
-    {
-        $endpoint = '/price-info';
-
-        $res = $this->request($endpoint)->get();
-        return $res->array();
-    }
-
-    /**
-     * List available courses. Required user permission: Backoffice view
-     */
-    public function options(): array
-    {
-        $endpoint = '/option-info';
-
-        $res = $this->request($endpoint)->get();
-        return $res->array();
-    }
-
-    /**
-     * List available courses. Required user permission: Backoffice view
-     */
-    public function areas(): array
-    {
-        $endpoint = '/sales-area-info';
-
-        $res = $this->request($endpoint)->get();
-        return $res->array();
-    }
 
     public function paymentMethods(): PaymentMethods
     {
@@ -189,82 +146,37 @@ class POSAPI
 
         return $this->paymentMethods;
     }
-
-    public function onlineTable($number = 1, $part = 'a'): array
-    {
-        $endpoint = sprintf("/table?tableNumber=%d&tablePart=%s", $number, urlencode($part));
-        $res = $this->request($endpoint)->get();
-
-        return $res->array();
-    }
-
-    public function createOrder(Order $order): int
-    {
-        $response = $this->request('order', 'v2')->post($order->json());
-
-        if (!$response->success())
-            throw new phunTillException('Order creation failed');
-
-        $res = $response->array();
-
-        return (int)$res['transactionId'];
-    }
-
-    public function pay(Order $order, int $paymentId): Response
-    {
-        $payment = [
-            'tableNumber' => $order->tableNumber(),
-            'tablePart' => $order->tablePart(),
-            'paymentId' => $paymentId,
-            // 'returnTicket' => true,
-            'amount' => 0.0
-        ];
-        $payment = json_encode($payment);
-
-        $request = $this->request('pay-order', 'v1');
-        $response = $request->post($payment);
-        if (!$response->success()) {
-            throw new phunTillException($response->content(), $response->status());
-        }
-
-        return $response;
-    }
-
-    public function keyValue($collection, $key = 'id', $value = 'name')
-    {
-        $ret = [];
-        $records = call_user_func([$this, $collection]);
-        foreach ($records as $rec) {
-            $ret[$rec->$key] = $rec->$value;
-        }
-        return $ret;
-    }
-
-    // public function getTables() : array
+    
+    // public function createOrder(Order $order): int
     // {
-    //   $endpoint = 'tables';
-    //   $response = $this->read($endpoint);
-    //   $response = json_decode($response);
-    //
-    //   $ret =[];
-    //   foreach($response as $table){
-    //       $ret []= Table::fromJSON($response);
-    //   }
-    //
-    //   return $ret;
+    //     $response = $this->post('order',$order->json(), 'v2');
+    //     $response = $response->array();
+    //     return (int)$response['transactionId'];
     // }
-    //
-    // public static function getItems()
+
+    // public function pay(Order $order, int $paymentId): Response
     // {
-    //   $endpoint = 'tables';
-    //   $response = $this->read($endpoint);
-    //   $items = json_decode($response);
-    //   $items_arr = array();
-    //   foreach ($items as $item) {
-    //       $items_arr[] = new Item($item->id, $item->name, $item->price, $item->description);
-    //   }
-    //   return $items_arr;
+    //     $payment = [
+    //         'tableNumber' => $order->tableNumber(),
+    //         'tablePart' => $order->tablePart(),
+    //         'paymentId' => $paymentId,
+    //         // 'returnTicket' => true,
+    //         'amount' => 0.0
+    //     ];
+    //     $payment = json_encode($payment);
+
+    //     $response = $this->post('pay-order', $payment, 'v1');
+
+
+    //     return $response;
     // }
 
 
+    // // Find active table by parameters. Required user permission: Ordering
+    // public function onlineTable($number = 1, $part = 'a'): array
+    // {
+    //     dd($this->get('table', ['tableNumber' => $number, 'tablePart' => $part])->array());
+    //     return [];
+    //     // $endpoint = sprintf("/table?tableNumber=%d&tablePart=%s", $number, urlencode($part));
+    // }
 }

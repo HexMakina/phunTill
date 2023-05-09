@@ -14,7 +14,7 @@ class PaymentMethods {
 
     public function __construct(POSAPI $api)
     {
-      $payment_methods = $api->request('payment-info')->get();
+      $payment_methods = $api->get('payment-info');
 
       foreach($payment_methods->array() as $method)
       {
