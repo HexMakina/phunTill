@@ -132,8 +132,10 @@ class POSAPI
         }
 
         $status = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
-        if (!in_array($status, self::SUCCESS_CODES))
+
+        if (!in_array($status, self::SUCCESS_CODES)) {
             throw new phunTillException('API_' . $request->method() . '_FAILURE-#' . $status);
+        }
 
         return new Response($body, $status);
     }
@@ -146,7 +148,7 @@ class POSAPI
 
         return $this->paymentMethods;
     }
-    
+
     // public function createOrder(Order $order): int
     // {
     //     $response = $this->post('order',$order->json(), 'v2');
