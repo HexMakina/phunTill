@@ -27,47 +27,46 @@ class Collection
     {
         $params = [];
 
-        
         switch ($name) {
 
                 //* List available articles. Required user permission: Backoffice view
             case 'articles':
                 $endpoint = 'article';
                 $params = $arguments[0] ?? false ? ['active' => 'true'] : [];
-                break;
+            break;
 
                 //* List available courses. Required user permission: Backoffice view
             case 'courses':
-                $endpoint = 'courses';
+                $endpoint = 'course';
                 $params = $arguments[0] ?? false ? ['active' => 'true'] : [];
-                break;
+            break;
 
                 //* List available departments. Required user permission: Backoffice view
             case 'departments':
                 $endpoint = 'department-info';
                 $params = isset($arguments[0]) ? ['salesAreaId' => $arguments[0]] : [] ;
-                break;
+            break;
 
                 //* List available categories. Required user permission: Backoffice view
             case 'categories':
                 $endpoint = 'category';
-                break;
+            break;
 
             case 'prices':
                 $endpoint = 'price-info';
-                break;
+            break;
 
             case 'options':
                 $endpoint = 'option-info';
-                break;
+            break;
 
             case 'areas':
                 $endpoint = 'sales-area-info';
-                break;
+            break;
 
             case 'tables':
                 $endpoint = 'table';
-                break;
+            break;
         }
 
         return self::api()->get($endpoint, $params);
