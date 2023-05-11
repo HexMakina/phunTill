@@ -16,7 +16,7 @@ class PaymentMethods {
     {
       $payment_methods = $api->get('payment-info');
 
-      foreach($payment_methods->array() as $method)
+      foreach($payment_methods->asArray() as $method)
       {
         if(!isset($this->cash_id) && $method->name == 'Cash')
           $this->cash_id = (int)$method->id;

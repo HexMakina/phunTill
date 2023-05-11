@@ -24,16 +24,25 @@ class Response
         return $this->content;
     }
 
-    public function array() : array
+    public function asArray() : array
     {
         return (array)json_decode($this->content());
     }
 
-    public function key_value($key='id', $value='name'): array
+    public function asAssoc(): array
+    {
+        $ret = [];
+        foreach($this->asArray() as $obj){
+            $ret[$obj->id] = $obj;
+        }
+        return $ret;
+    }
+
+    public function asIdLabel($key='id', $value='name'): array
     {
         $ret = [];
 
-        $res = $this->array();
+        $res = $this->asArray();
         foreach ($res as $rec) {
             $ret[$rec->$key] = $rec->$value;
         }

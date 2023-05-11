@@ -152,7 +152,7 @@ class POSAPI
     // public function createOrder(Order $order): int
     // {
     //     $response = $this->post('order',$order->json(), 'v2');
-    //     $response = $response->array();
+    //     $response = $response->asArray();
     //     return (int)$response['transactionId'];
     // }
 
@@ -177,7 +177,7 @@ class POSAPI
     // // Find active table by parameters. Required user permission: Ordering
     // public function onlineTable($number = 1, $part = 'a'): array
     // {
-    //     dd($this->get('table', ['tableNumber' => $number, 'tablePart' => $part])->array());
+    //     dd($this->get('table', ['tableNumber' => $number, 'tablePart' => $part])->asArray());
     //     return [];
     //     // $endpoint = sprintf("/table?tableNumber=%d&tablePart=%s", $number, urlencode($part));
     // }

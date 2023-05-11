@@ -60,10 +60,10 @@ class Order {
 
     public function json(): string
     {
-      return json_encode($this->array());
+      return json_encode($this->asArray());
     }
 
-    public function array(): array
+    public function asArray(): array
     {
       $res = (array)$this;
 
