@@ -64,9 +64,9 @@ class Collection
                 $endpoint = 'sales-area-info';
             break;
 
-            case 'tables':
-                $endpoint = 'table';
-            break;
+            case 'printers':
+                $endpoint = 'printer';
+            break;        
         }
 
         return self::api()->get($endpoint, $params);
