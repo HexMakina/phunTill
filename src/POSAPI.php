@@ -98,7 +98,6 @@ class POSAPI
     {
         $request = new Request($this, $endpoint, 'GET', $version);
         $request->withParameters($params);
-
         return $this->execute($request);
     }
 
@@ -112,6 +111,7 @@ class POSAPI
 
         $request = new Request($this, $endpoint, 'POST', $version);
         $request->withOptions($post_options);
+        vd($request->url());
 
         return $this->execute($request);
     }
@@ -119,7 +119,6 @@ class POSAPI
     private function execute(Request $request): Response
     {
         $this->curl_handle = curl_init();
-
         $request->withOption(CURLOPT_URL, $request->URL());
 
         foreach ($request->options() as $const => $value)
@@ -127,15 +126,15 @@ class POSAPI
 
 
         $body = curl_exec($this->curl_handle);
-        if ($body === false) {
-            $body = json_encode(curl_getinfo($this->curl_handle)); // error context
-        }
-
         $status = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
 
         if (!in_array($status, self::SUCCESS_CODES)) {
-            throw new phunTillException('API_' . $request->method() . '_FAILURE-#' . $status);
+            throw new phunTillException($body . ' --#' . $status);
         }
+
+        // if ($body === false) {
+        //     $body = json_encode(curl_getinfo($this->curl_handle)); // error context
+        // }
 
         return new Response($body, $status);
     }
@@ -149,12 +148,14 @@ class POSAPI
         return $this->paymentMethods;
     }
 
-    // public function createOrder(Order $order): int
-    // {
-    //     $response = $this->post('order',$order->json(), 'v2');
-    //     $response = $response->asArray();
-    //     return (int)$response['transactionId'];
-    // }
+    public function createOrder(Order $order): int
+    {
+        vd($order->json());
+        $response = $this->post('order',$order->json(), 'v2');
+        vd($response);
+        $response = $response->asArray();
+        return (int)$response['transactionId'];
+    }
 
     // public function pay(Order $order, int $paymentId): Response
     // {

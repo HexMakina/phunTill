@@ -34,7 +34,6 @@ class Collection
                 $endpoint = 'article';
                 $params = $arguments[0] ?? false ? ['active' => 'true'] : [];
             break;
-
                 //* List available courses. Required user permission: Backoffice view
             case 'courses':
                 $endpoint = 'course';
@@ -58,6 +57,10 @@ class Collection
 
             case 'options':
                 $endpoint = 'option-info';
+            break;
+
+            case 'itemsForOption':
+                $endpoint = 'option-info/'.$arguments[0];
             break;
 
             case 'areas':
