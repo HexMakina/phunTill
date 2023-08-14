@@ -7,80 +7,81 @@
 
 namespace HexMakina\phunTill;
 
-class Order {
-
+class Order
+{
     public $clientName;
     public $tableNumber;
     public $tablePart;
     public $items = [];
     public $takeAwayNotes;
+    public $takeAwayTimestamp;
 
-    public function __construct(Table $table, $items = []) {
+    public function __construct(Table $table, $items = [])
+    {
         $this->tableNumber = $table->getNumber();
         $this->tablePart = $table->getPart();
         $this->items = is_array($items) ? $items : [];
     }
 
+    public function setClient(string $name)
+    {
+        $this->clientName = $name;
+    }
+
     public function tableNumber()
     {
-      return $this->tableNumber;
+        return $this->tableNumber;
     }
 
     public function tablePart()
     {
-      return $this->tablePart;
+        return $this->tablePart;
     }
 
-    private function addItem($item): int {
+    public function items(): array
+    {
+        return $this->items;
+    }
 
+
+    public function setNote(string $text)
+    {
+        $this->takeAwayNotes = $text;
+    }
+
+    public function setDate(\DateTimeImmutable $date)
+    {
+        $this->takeAwayTimestamp = $date->format('Y-m-d\TH:i:s');
+    }
+
+    public function addItem($item)
+    {
         $this->items[] = $item;
         $last_index = array_key_last($this->items);
-        $item->number($last_index+1);
-
-        return $item->number();
-    }
-    
-    public function setClient(string $name){
-        $this->clientName = $name;
+        return $item->setNumber($last_index + 1);
     }
 
-    public function addNormalArticle($articleId, $quantity): int
+    public function addMessage($text)
     {
-        return $this->addItem(new Item($articleId, 0, $quantity));
-    }
+        $message = new Item(0, ItemType::MESSAGE);
+        $message->setText($text);
 
-    public function addMessage($text): int{
-      $articleId = 0;
-      $orderItemType = 6;
-
-      $message = new Item($articleId, $orderItemType);
-      $message->setText($text);
-
-      return $this->addItem($message);
-    }
-
-    public function setNote(string $text){
-      $this->takeAwayNotes = $text;
-    }
-
-    public function items():array
-    {
-      return $this->items;
+        $this->addItem($message);
     }
 
     public function json(): string
     {
-      return json_encode($this->asArray());
+        return json_encode($this->asArray());
     }
 
     public function asArray(): array
     {
-      $res = (array)$this;
+        $res = (array)$this;
 
-      foreach($res['items'] as $number => $item)
-        $res['items'][$number] = (array)$item;
+        foreach ($res['items'] as $number => $item)
+            $res['items'][$number] = (array)$item;
 
-      return $res;
+        return $res;
     }
 }
 
