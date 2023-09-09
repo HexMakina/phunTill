@@ -10,6 +10,8 @@ namespace HexMakina\phunTill;
 class Response
 {
 
+    public const SUCCESS_CODES = [200, 201];
+
     private string $content;
     private int $status;
 
@@ -26,7 +28,7 @@ class Response
 
     public function asArray() : array
     {
-        return (array)json_decode($this->content());
+        return json_decode($this->content(), true);
     }
 
     public function asAssoc(): array
@@ -54,4 +56,19 @@ class Response
     {
         return $this->status;
     }
+
+    public function isSuccess(): bool
+    {
+        return in_array($this->status, self::SUCCESS_CODES);
+    }
+    
+    public function error(): string
+    {
+        $ret = $this->asArray();
+        return $ret['message']; 
+    }
+
+
+
+
 }
