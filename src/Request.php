@@ -27,6 +27,14 @@ class Request
         $this->method = $method;
         $this->version = $version;
 
+        $this->setInitialOptions();
+    }
+
+    /**
+     * Initialize default cURL options.
+     */
+    private function setInitialOptions(): void
+    {
         $this->withOptions([
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
@@ -35,36 +43,67 @@ class Request
         ]);
     }
 
-    public function withParameter($key, $value)
+    /**
+     * Add a single parameter.
+     *
+     * @param mixed $key
+     * @param mixed $value
+     * @return self
+     */
+    public function withParameter($key, $value): self
     {
         $this->parameters[$key] = $value;
-
         return $this;
     }
 
-    public function withParameters(array $dat_ass)
+    /**
+     * Add multiple parameters.
+     *
+     * @param array $parameters
+     * @return self
+     */
+    public function withParameters(array $parameters): self
     {
-        foreach ($dat_ass as $key => $value)
+        foreach ($parameters as $key => $value) {
             $this->withParameter($key, $value);
-
+        }
         return $this;
     }
 
-    public function withOption($key, $value)
+    /**
+     * Add a single cURL option.
+     *
+     * @param mixed $key
+     * @param mixed $value
+     * @return self
+     */
+    public function withOption($key, $value): self
     {
         $this->options[$key] = $value;
-
         return $this;
     }
 
-    public function withOptions(array $dat_ass)
+    /**
+     * Add multiple cURL options.
+     *
+     * @param array $options
+     * @return self
+     */
+    public function withOptions(array $options): self
     {
-        foreach ($dat_ass as $key => $value)
+        foreach ($options as $key => $value) {
             $this->withOption($key, $value);
-
+        }
         return $this;
     }
 
+    /**
+     * Generate the URL for the API request.
+     *
+     * @param mixed $endpoint
+     * @param mixed $version
+     * @return string
+     */
     public function URL($endpoint = null, $version = null): string
     {
         $endpoint = $endpoint ?? $this->endpoint;
@@ -77,11 +116,21 @@ class Request
         return sprintf('%s/api/%s/%s/%s', $this->api->baseUrl(), $version, $this->api->database(), $endpoint);
     }
 
+    /**
+     * Get the HTTP method.
+     *
+     * @return string
+     */
     public function method(): string
     {
         return $this->method;
     }
 
+    /**
+     * Get the cURL options.
+     *
+     * @return array
+     */
     public function options(): array
     {
         return $this->options;
