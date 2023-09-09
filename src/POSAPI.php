@@ -1,12 +1,10 @@
 <?php
 
-/*
- * phunTill you have to do it yourself
+/**
+ * it's phunTill you have to do it yourself
+ * phunTillException is thrown on failure.
  *
- */
-
-/*
-   DOC: https://testapi.untill.com/shield/api/
+ * API Documentation: https://testapi.untill.com/shield/api/
  */
 
 namespace HexMakina\phunTill;
@@ -14,32 +12,28 @@ namespace HexMakina\phunTill;
 class POSAPI
 {
     public const AUTH_FORMAT = '%s:%s';
-    public const SUCCESS_CODES = [200, 201];
 
     private $curl_handle;
-
     private $baseUrl;
     private $database;
     private $appToken;
     private $appName;
-
     private $username;
     private $password;
-
     private $version;
-
-
     private $headers;
-    private $onlineTableName = null;
-    private $paymentMethods = null;
-
 
     /**
-     * Header examples
-     *  Only application token presents - AppToken: myAppToken
-     *  Application token and application name presents - AppToken: myAppToken:myAppName
+     * Header examples:
+     * - Only application token present: AppToken: myAppToken
+     * - Application token and application name present: AppToken: myAppToken:myAppName
+     *
+     * @param string $baseUrl
+     * @param string $database
+     * @param string $appToken
+     * @param string $appName
+     * @param string $version
      */
-
     public function __construct($baseUrl, $database, $appToken, $appName, $version)
     {
         $this->baseUrl = $baseUrl;
@@ -50,50 +44,81 @@ class POSAPI
 
         $this->headers = [
             'AppToken: ' . sprintf(self::AUTH_FORMAT, $this->appToken, $this->appName),
-            'Content-Type: application/json'
+            'Content-Type: application/json',
         ];
     }
 
+    /**
+     * Set API credentials.
+     *
+     * @param string $username
+     * @param string $password
+     */
     public function setCredentials($username, $password)
     {
         $this->username = $username;
         $this->password = $password;
     }
 
+    /**
+     * Get the database name.
+     *
+     * @return string
+     */
     public function database(): string
     {
         return $this->database;
     }
 
+    /**
+     * Get the API version.
+     *
+     * @return string
+     */
     public function version(): string
     {
         return $this->version;
     }
 
+    /**
+     * Get the base URL.
+     *
+     * @return string
+     */
     public function baseUrl(): string
     {
         return $this->baseUrl;
     }
 
-    public function onlineTableName($name = null)
-    {
-        if (!is_null($name))
-            $this->onlineTableName = $name;
-
-        return $this->onlineTableName;
-    }
-
+    /**
+     * Get the headers array.
+     *
+     * @return array
+     */
     public function headers(): array
     {
         return $this->headers;
     }
 
+    /**
+     * Get the authentication string.
+     *
+     * @return string
+     */
     public function authString(): string
     {
         return sprintf(self::AUTH_FORMAT, $this->username, $this->password);
     }
 
-    // throws phunTillException depending of success
+    /**
+     * Send a GET request.
+     *
+     * @param string $endpoint
+     * @param array $params
+     * @param string|null $version
+     * @return Response
+     * @throws phunTillException
+     */
     public function get(string $endpoint, $params = [], $version = null): Response
     {
         $request = new Request($this, $endpoint, 'GET', $version);
@@ -101,85 +126,52 @@ class POSAPI
         return $this->execute($request);
     }
 
-    // throws phunTillException depending of success
+    /**
+     * Send a POST request.
+     *
+     * @param string $endpoint
+     * @param string $json_content
+     * @param string|null $version
+     * @return Response
+     * @throws phunTillException
+     */
     public function post(string $endpoint, string $json_content, $version = null): Response
     {
         $post_options = [
             CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => $json_content
+            CURLOPT_POSTFIELDS => $json_content,
         ];
 
         $request = new Request($this, $endpoint, 'POST', $version);
         $request->withOptions($post_options);
-        vd($request->url());
 
         return $this->execute($request);
     }
 
+    /**
+     * Execute the request and handle exceptions.
+     *
+     * @param Request $request
+     * @return Response
+     * @throws phunTillException
+     */
     private function execute(Request $request): Response
     {
         $this->curl_handle = curl_init();
         $request->withOption(CURLOPT_URL, $request->URL());
 
-        foreach ($request->options() as $const => $value)
+        foreach ($request->options() as $const => $value) {
             curl_setopt($this->curl_handle, $const, $value);
-
-
-        $body = curl_exec($this->curl_handle);
-        $status = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
-
-        if (!in_array($status, self::SUCCESS_CODES)) {
-            throw new phunTillException($body . ' --#' . $status);
         }
 
-        // if ($body === false) {
-        //     $body = json_encode(curl_getinfo($this->curl_handle)); // error context
-        // }
+        $body = curl_exec($this->curl_handle); // string application/json
+
+        if ($body === false) {
+            throw new phunTillException(curl_error($this->curl_handle), curl_errno($this->curl_handle));
+        }
+
+        $status = curl_getinfo($this->curl_handle, CURLINFO_HTTP_CODE);
 
         return new Response($body, $status);
     }
-
-
-    public function paymentMethods(): PaymentMethods
-    {
-        if (is_null($this->paymentMethods))
-            $this->paymentMethods = new PaymentMethods($this);
-
-        return $this->paymentMethods;
-    }
-
-    public function createOrder(Order $order): int
-    {
-        vd($order->json());
-        $response = $this->post('order',$order->json(), 'v2');
-        vd($response);
-        $response = $response->asArray();
-        return (int)$response['transactionId'];
-    }
-
-    // public function pay(Order $order, int $paymentId): Response
-    // {
-    //     $payment = [
-    //         'tableNumber' => $order->tableNumber(),
-    //         'tablePart' => $order->tablePart(),
-    //         'paymentId' => $paymentId,
-    //         // 'returnTicket' => true,
-    //         'amount' => 0.0
-    //     ];
-    //     $payment = json_encode($payment);
-
-    //     $response = $this->post('pay-order', $payment, 'v1');
-
-
-    //     return $response;
-    // }
-
-
-    // // Find active table by parameters. Required user permission: Ordering
-    // public function onlineTable($number = 1, $part = 'a'): array
-    // {
-    //     dd($this->get('table', ['tableNumber' => $number, 'tablePart' => $part])->asArray());
-    //     return [];
-    //     // $endpoint = sprintf("/table?tableNumber=%d&tablePart=%s", $number, urlencode($part));
-    // }
 }
