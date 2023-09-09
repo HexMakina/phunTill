@@ -19,10 +19,10 @@ class Response
      * @param string $content The raw content of the API response.
      * @param int $status The HTTP status code of the API response.
      */
-    public function __construct(string $content, $status)
+    public function __construct(string $content, int $status)
     {
         $this->content = $content;
-        $this->status = (int)$status;
+        $this->status = $status;
     }
 
     /**
