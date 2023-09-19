@@ -149,7 +149,7 @@ class POSAPI
     }
 
     /**
-     * Execute the request and handle exceptions.
+     * Execute the request and throws up if curl fails
      *
      * @param Request $request
      * @return Response

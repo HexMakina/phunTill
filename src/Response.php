@@ -2,13 +2,15 @@
 
 /**
  * Represents the response from the phunTill API.
+ * Stores the HTTP status and the JSON response as a string
+ * 
  */
 
 namespace HexMakina\phunTill;
 
 class Response
 {
-    public const SUCCESS_CODES = [200, 201];
+    public const SUCCESS_CODES = [200 => 'OK', 201 => 'CREATED'];
 
     private string $content; // application/json
     private int $status;
@@ -33,6 +35,28 @@ class Response
     public function content(): string
     {
         return $this->content;
+    }
+
+
+    /**
+     * Get the HTTP status code of the API response.
+     *
+     * @return int The HTTP status code.
+     */
+    public function status(): int
+    {
+        return $this->status;
+    }
+
+
+    /**
+     * Check if the API response represents a successful request.
+     *
+     * @return bool True if the response status is a success code, false otherwise.
+     */
+    public function isSuccess(): bool
+    {
+        return isset(self::SUCCESS_CODES[$this->status()]);
     }
 
     /**
@@ -61,25 +85,6 @@ class Response
         return $ret;
     }
 
-    /**
-     * Get the HTTP status code of the API response.
-     *
-     * @return int The HTTP status code.
-     */
-    public function status(): int
-    {
-        return $this->status;
-    }
-
-    /**
-     * Check if the API response represents a successful request.
-     *
-     * @return bool True if the response status is a success code, false otherwise.
-     */
-    public function isSuccess(): bool
-    {
-        return in_array($this->status, self::SUCCESS_CODES);
-    }
 
     /**
      * Get the error message from the API response.
