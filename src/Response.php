@@ -59,6 +59,16 @@ class Response
         return isset(self::SUCCESS_CODES[$this->status()]);
     }
 
+    public function hasErrorMessage(): ?string
+    {
+        if($this->isSuccess())
+            return null;
+
+        $message = $this->asArray();
+        
+        return $message['message'] ?? null;
+    }
+
     /**
      * Convert the API response content to an array.
      *
@@ -66,7 +76,16 @@ class Response
      */
     public function asArray(): array
     {
-        return json_decode($this->content(), true);
+        $content = $this->content();
+        $content = str_replace('\\', '\\\\', $content);
+        $decode = json_decode($content, true);
+
+        if(is_null($decode)){
+            vd($this->content());
+            dd(json_last_error_msg(), json_last_error());
+        }
+
+        return $decode;
     }
 
     /**
@@ -76,16 +95,26 @@ class Response
      * @param string $value The key to use as the associative array's values.
      * @return array An associative array with 'id' as keys and objects as values.
      */
-    public function asAssoc(string $key = 'id', string $value = 'name'): array
+    public function asAssoc(string $key = 'id', string $value = null): array
     {
         $ret = [];
         foreach ($this->asArray() as $obj) {
-            $ret[$obj[$key]] = $obj;
+            if(empty($value))
+            $ret[$obj[$key]] = empty($value) ? $obj : $obj->$value;
         }
         return $ret;
     }
 
+    public function asIdLabel($key='id', $value='name'): array
+    {
+        $ret = [];
 
+        foreach ($this->asArray() as $rec) {
+            $ret[$rec[$key]] = $rec[$value];
+        }
+
+        return $ret;
+    }
     /**
      * Get the error message from the API response.
      *
