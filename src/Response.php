@@ -14,6 +14,7 @@ class Response
 
     private string $content; // application/json
     private int $status;
+    private bool $success;
 
     /**
      * Constructor for Response class.
@@ -25,6 +26,8 @@ class Response
     {
         $this->content = $content;
         $this->status = $status;
+
+        $this->success = isset(self::SUCCESS_CODES[$status]);
     }
 
     /**
@@ -56,17 +59,7 @@ class Response
      */
     public function isSuccess(): bool
     {
-        return isset(self::SUCCESS_CODES[$this->status()]);
-    }
-
-    public function hasErrorMessage(): ?string
-    {
-        if($this->isSuccess())
-            return null;
-
-        $message = $this->asArray();
-        
-        return $message['message'] ?? null;
+        return $this->success === true;
     }
 
     /**
@@ -74,18 +67,36 @@ class Response
      *
      * @return array The response content as an array.
      */
+    public function message(): ?string
+    {
+        $message = null;
+
+        if(strpos($this->content(), '{"message":"') === 0){
+            $res = json_decode($this->content(), true);
+            if(isset($res['message']))
+                $message = $res['message'];
+
+        }
+
+        return $message;
+    }
+
+
     public function asArray(): array
     {
+        if ($message = $this->message())
+            throw new phunTillException('API Error: ' . $message);
+            
         $content = $this->content();
         $content = str_replace('\\', '\\\\', $content);
-        $decode = json_decode($content, true);
-
-        if(is_null($decode)){
+        $content = json_decode($content, true);
+        
+        if(is_null($content)){
             vd($this->content());
             dd(json_last_error_msg(), json_last_error());
         }
 
-        return $decode;
+        return $content;
     }
 
     /**
@@ -110,6 +121,7 @@ class Response
         $ret = [];
 
         foreach ($this->asArray() as $rec) {
+            vd($rec);
             $ret[$rec[$key]] = $rec[$value];
         }
 
